@@ -1,6 +1,7 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import type { Game, Player } from '../../types/game';
-	import type { OutgoingMessage } from '../../types/ws';
+	import type { JoinGameData, OutgoingMessage } from '../../types/ws';
 	const { onClose } = $props<{ onClose: () => void }>();
 
 	let roomCodeInput = $state('');
@@ -13,13 +14,14 @@
 
 	const connectToRoom = () => {
 		if (!roomCodeInput.trim()) return;
+		if (players.find((player) => player.NickName == nickNameInput)) return;
 
 		ws = new WebSocket('ws://localhost:8080/ws');
 
 		ws.onopen = () => {
 			console.log('✅ Connected to server');
 			if (!ws) return;
-			const message: OutgoingMessage = {
+			const message: OutgoingMessage<JoinGameData> = {
 				Type: 'JoinGame',
 				Data: {
 					GameId: roomCodeInput,
@@ -30,7 +32,13 @@
 		};
 
 		ws.onmessage = (event) => {
+			if (event.data === 'StartGame') {
+				goto(`/${roomCode}?playerId=${nickNameInput}`);
+				return;
+			}
+
 			const game: Game = JSON.parse(event.data);
+
 			roomCode = game.Id;
 			players = game.Players ? game.Players : players;
 

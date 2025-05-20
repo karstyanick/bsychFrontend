@@ -1,8 +1,16 @@
 export interface Player {
-	Id: string,
+	Leader: boolean
 	NickName: string
+	Answers: {
+		Answer: string,
+		Score: number
+	}[]
+	Votes: string[];
 }
 export interface Game {
-	Id: string,
+	Id: string
+	Category: string
+	NumberOfRounds: number
+	Prompts: string[]
 	Players: Player[]
 }
