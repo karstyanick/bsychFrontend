@@ -2,6 +2,12 @@
 	import { onMount } from 'svelte';
 	import type { Game, Player } from '../../types/game';
 
+	import Fa from 'svelte-fa';
+	import { faCheck } from '@fortawesome/free-solid-svg-icons';
+	import { faHourglassHalf } from '@fortawesome/free-solid-svg-icons';
+	import { faThumbsUp as faThumbsUpSolid } from '@fortawesome/free-solid-svg-icons';
+	import { faThumbsUp } from '@fortawesome/free-regular-svg-icons';
+
 	const { data } = $props<{
 		data: {
 			gameId: string;
@@ -12,6 +18,7 @@
 	let ws: WebSocket;
 	let roomCode = $state('');
 	let players = $state<Player[]>([]);
+	let me = $state<Player>();
 	let prompts = $state<string[]>([]);
 	let answers = $state<{ Answer: string; Score: number }[]>([]);
 	let votes = $state<string[]>([]);
@@ -81,8 +88,9 @@
 				prompts = game.Prompts;
 			}
 
-			answers = game.Players.find((p) => p.NickName == data.playerId)?.Answers || [];
-			votes = game.Players.find((p) => p.NickName == data.playerId)?.Votes || [];
+			me = game.Players.find((p) => p.NickName === data.playerId);
+			answers = me?.Answers || [];
+			votes = me?.Votes || [];
 
 			if (players.every((p) => p.Answers.length == prompts.length)) {
 				showCurrentRowAnswers = true;
@@ -110,114 +118,162 @@
 	});
 </script>
 
-<h1 class="mb-4 text-2xl font-bold">Game: {roomCode}</h1>
-{#if !showEndScreen}
-	<p class="mb-4 font-semibold">Prompt: {prompts[prompts.length - 1]}</p>
+<div class="px-4 sm:px-6">
+	<h1 class="mb-3 text-center text-2xl font-extrabold tracking-wide text-violet-700">
+		Room {roomCode}
+	</h1>
 
-	<!-- Answer input -->
-	<div class="mb-6 flex gap-2">
-		<input
-			type="text"
-			bind:value={answerInput}
-			placeholder="Your answer"
-			class="flex-1 rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring focus:outline-none"
-			disabled={answers.length === prompts.length}
-		/>
-		<button
-			class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
-			onclick={submitAnswer}
-			disabled={!answerInput}
+	{#if !showEndScreen}
+		<p
+			class="mb-4 rounded bg-violet-100 px-3 py-2 text-center text-base font-semibold text-violet-800 shadow-sm"
 		>
-			Submit
-		</button>
-	</div>
+			{prompts[prompts.length - 1]}
+		</p>
+		{#if !showCurrentRowAnswers}
+			<!-- Answer input -->
+			<div class="mb-5 flex flex-col gap-2 sm:flex-row">
+				<input
+					type="text"
+					bind:value={answerInput}
+					placeholder="Your answer…"
+					class="flex-1 rounded-lg border border-violet-300 px-4 py-3 text-sm shadow-sm focus:border-violet-500 focus:outline-none disabled:bg-gray-100"
+					disabled={answers.length === prompts.length}
+				/>
 
-	<!-- Player list with answer status -->
-	<div class="space-y-2">
-		<h2 class="mb-2 text-lg font-medium">Players</h2>
-		<ul class="space-y-1">
-			{#each players as player}
-				<li class="flex items-center justify-between rounded bg-gray-100 px-4 py-2">
-					<span>{player.NickName}</span>
-					{#if !showCurrentRowAnswers}
-						<span class="font-mono text-sm text-gray-600">
-							{#if player.Answers && player.Answers.length > prompts.length - 1}
-								✅ answered
+				<button
+					class="rounded-lg bg-violet-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-50"
+					onclick={submitAnswer}
+					disabled={!answerInput}
+				>
+					Send
+				</button>
+			</div>
+		{/if}
+		<!-- Player list -->
+		<div class="space-y-3">
+			<h2 class="text-lg font-semibold text-violet-700">Players</h2>
+
+			<ul class="space-y-2">
+				{#each players as player (player.NickName)}
+					<li
+						class="flex items-center justify-between rounded-xl bg-white/80 px-4 py-3 shadow transition duration-300
+                 {showCurrentRowAnswers ? 'animate-fade-in' : ''}"
+					>
+						<span class="font-medium">{player.NickName}</span>
+
+						{#if !showCurrentRowAnswers}
+							<!-- status: waiting / answered -->
+							{#if player.Answers.length > prompts.length - 1}
+								<Fa icon={faCheck} class="h-5 w-5 text-emerald-500" />
 							{:else}
-								⏳ waiting
+								<Fa icon={faHourglassHalf} class="h-5 w-5 text-amber-500" />
 							{/if}
-						</span>
-					{/if}
-					{#if showCurrentRowAnswers}
-						<span class="font-mono text-sm text-gray-600">
-							{player.Answers[prompts.length - 1].Answer}
-						</span>
-						<button
-							onclick={() => voteAnswer(player.NickName)}
-							disabled={votes.length === prompts.length}
-							class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
-						>
-							Vote for this
-						</button>
-						<span>
-							{player.Answers[prompts.length - 1].Score}
-						</span>
-					{/if}
-				</li>
-			{/each}
-		</ul>
-	</div>
-{/if}
+						{/if}
 
-{#if showNextPromptButton}
-	<div class="mt-6 flex gap-2">
-		<button
-			class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
-			onclick={nextPrompt}
-		>
-			Next prompt
-		</button>
-	</div>
-{/if}
+						{#if showCurrentRowAnswers}
+							<!-- reveal answers & vote -->
+							<span class="mx-2 line-clamp-1 font-mono text-sm text-gray-700">
+								{player.Answers[prompts.length - 1].Answer}
+							</span>
+							<span class="ml-2 text-sm font-semibold text-violet-700">
+								{player.Answers[prompts.length - 1].Score}
+							</span>
+							<button
+								class="rose-600"
+								onclick={() => voteAnswer(player.NickName)}
+								disabled={votes.length === prompts.length}
+							>
+								{#if me?.Votes.length === prompts.length && me?.Votes.slice(-1)[0] === player.NickName}
+									<Fa icon={faThumbsUpSolid} color="#6d28d9" class="h-4 w-4" />
+								{/if}
+								{#if (me as Player).Votes.length < prompts.length || me?.Votes.slice(-1)[0] !== player.NickName}
+									<Fa icon={faThumbsUp} color="#6d28d9" class="h-4 w-4" />
+								{/if}
+							</button>
+						{/if}
+					</li>
+				{/each}
+			</ul>
+		</div>
+	{/if}
 
-{#if showEndScreen}
-	<div class="mx-5 mt-8">
-		<h3 class="mb-2 text-xl font-semibold">Total Scores</h3>
-		<ul class="space-y-1">
-			{#each players as player}
-				<li class="flex justify-between text-sm font-medium">
-					<span>{player.NickName}</span>
-					<span class="text-blue-700">
-						{player.Answers.reduce((sum, a) => sum + a.Score, 0)} pts
-					</span>
-				</li>
-			{/each}
-		</ul>
-	</div>
+	<!-- Next-prompt button -->
+	{#if showNextPromptButton}
+		<div class="mt-6 text-center">
+			<button
+				class="rounded-lg bg-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700"
+				onclick={nextPrompt}
+			>
+				Next prompt
+			</button>
+		</div>
+	{/if}
 
-	<div class="mt-8 border-t border-gray-300 p-6">
-		<h2 class="mb-4 text-2xl font-bold">Final Results</h2>
-
-		{#each prompts as prompt, i}
-			<div class="mb-6 rounded-lg bg-white px-4 py-3 shadow">
-				<h3 class="mb-2 text-lg font-semibold">Prompt {i + 1}</h3>
-				<p class="mb-4 text-gray-700 italic">{prompt}</p>
-
-				<ul class="space-y-1">
+	<!-- End-screen -->
+	{#if showEndScreen}
+		<div class="mx-auto mt-8 max-w-md space-y-8">
+			<!-- totals -->
+			<div class="rounded-xl bg-white/90 p-6 shadow-lg">
+				<h3 class="mb-3 text-xl font-bold text-violet-700">Total Scores</h3>
+				<ul class="space-y-2">
 					{#each players as player}
-						<li class="flex justify-between border-b pb-1 text-sm">
-							<span class="text-gray-800">{player.NickName}</span>
-							{#if player.Answers.length > i}
-								<span class="font-mono text-gray-700">
-									"{player.Answers[i].Answer}" ({player.Answers[i].Score} pts)
-								</span>
-							{:else}
-								<span class="text-gray-400 italic">no answer</span>
-							{/if}
+						<li class="flex justify-between text-sm font-medium">
+							<span>{player.NickName}</span>
+							<span class="text-violet-700">
+								{player.Answers.reduce((s, a) => s + a.Score, 0)} pts
+							</span>
 						</li>
 					{/each}
 				</ul>
 			</div>
-		{/each}
-	</div>
-{/if}
+
+			<!-- per-prompt breakdown -->
+			<div class="rounded-xl bg-white/90 p-6 shadow-lg">
+				<h2 class="mb-4 text-2xl font-bold">Final Results</h2>
+
+				{#each prompts as prompt, i}
+					<div class="mb-6 last:mb-0">
+						<h3 class="mb-2 text-base font-semibold text-violet-700">
+							Prompt {i + 1}
+						</h3>
+						<p class="mb-3 rounded bg-violet-50 px-3 py-2 text-sm text-violet-800 italic">
+							{prompt}
+						</p>
+
+						<ul class="space-y-1">
+							{#each players as player}
+								<li class="flex justify-between border-b pb-1 text-xs last:border-b-0">
+									<span class="font-medium text-gray-700">{player.NickName}</span>
+									{#if player.Answers.length > i}
+										<span class="font-mono text-gray-600">
+											“{player.Answers[i].Answer}” ({player.Answers[i].Score} pts)
+										</span>
+									{:else}
+										<span class="text-gray-400 italic">no answer</span>
+									{/if}
+								</li>
+							{/each}
+						</ul>
+					</div>
+				{/each}
+			</div>
+		</div>
+	{/if}
+</div>
+
+<style>
+	/* simple fade-in once answers reveal */
+	@keyframes fade-in {
+		from {
+			opacity: 0;
+			transform: translateY(4px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+	.animate-fade-in {
+		animation: fade-in 0.25s ease-out;
+	}
+</style>
