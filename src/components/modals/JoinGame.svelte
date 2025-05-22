@@ -10,7 +10,6 @@
 	let ws: WebSocket | null = null;
 
 	let connected = $state(false);
-	let roomCode = $state('');
 
 	const connectToRoom = () => {
 		if (!roomCodeInput.trim()) return;
@@ -33,13 +32,13 @@
 
 		ws.onmessage = (event) => {
 			if (event.data === 'StartGame') {
-				goto(`/${roomCode}?playerId=${nickNameInput}`);
+				goto(`/${roomCodeInput}?playerId=${nickNameInput}`);
 				return;
 			}
 
 			const game: Game = JSON.parse(event.data);
 
-			roomCode = game.Id;
+			const roomCode = game.Id;
 			players = game.Players ? game.Players : players;
 
 			if (roomCode && players) {

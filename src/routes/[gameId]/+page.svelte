@@ -155,41 +155,60 @@
 
 			<ul class="space-y-2">
 				{#each players as player (player.NickName)}
+					<!-- one card per player -->
 					<li
-						class="flex items-center justify-between rounded-xl bg-white/80 px-4 py-3 shadow transition duration-300
-                 {showCurrentRowAnswers ? 'animate-fade-in' : ''}"
+						class="grid grid-cols-[auto_1fr_auto_auto] items-start
+               gap-x-2
+               rounded-xl bg-white/80 px-4 py-3 shadow
+               transition duration-300
+               {showCurrentRowAnswers ? 'animate-fade-in' : ''}"
 					>
-						<span class="font-medium">{player.NickName}</span>
+						<!-- 1️⃣ name -->
+						<span class="max-w-[6rem] truncate font-medium sm:max-w-none">
+							{player.NickName}
+						</span>
 
 						{#if !showCurrentRowAnswers}
-							<!-- status: waiting / answered -->
+							<!-- waiting / answered icon (put in the 4th column) -->
 							{#if player.Answers.length > prompts.length - 1}
-								<Fa icon={faCheck} class="h-5 w-5 text-emerald-500" />
+								<Fa icon={faCheck} class="col-start-4 h-5 w-5 justify-self-end text-emerald-500" />
 							{:else}
-								<Fa icon={faHourglassHalf} class="h-5 w-5 text-amber-500" />
+								<Fa
+									icon={faHourglassHalf}
+									class="col-start-4 h-5 w-5 justify-self-end text-amber-500"
+								/>
 							{/if}
 						{/if}
 
 						{#if showCurrentRowAnswers}
-							<!-- reveal answers & vote -->
-							<span class="mx-2 line-clamp-1 font-mono text-sm text-gray-700">
-								{player.Answers[prompts.length - 1].Answer}
-							</span>
-							<span class="ml-2 text-sm font-semibold text-violet-700">
+							<!-- 3️⃣ score -->
+							<span class="text-right text-sm font-semibold text-violet-700 sm:text-left">
 								{player.Answers[prompts.length - 1].Score}
 							</span>
+							<!-- 4️⃣ vote button -->
 							<button
-								class="rose-600"
+								class="justify-self-end {me?.Votes.length === prompts.length &&
+								me?.Votes.slice(-1)[0] !== player.NickName
+									? 'disabled:opacity-40'
+									: ''}"
 								onclick={() => voteAnswer(player.NickName)}
 								disabled={votes.length === prompts.length}
 							>
 								{#if me?.Votes.length === prompts.length && me?.Votes.slice(-1)[0] === player.NickName}
-									<Fa icon={faThumbsUpSolid} color="#6d28d9" class="h-4 w-4" />
-								{/if}
-								{#if (me as Player).Votes.length < prompts.length || me?.Votes.slice(-1)[0] !== player.NickName}
-									<Fa icon={faThumbsUp} color="#6d28d9" class="h-4 w-4" />
+									<Fa icon={faThumbsUpSolid} class="h-4 w-4 text-violet-700" />
+								{:else}
+									<Fa icon={faThumbsUp} class="h-4 w-4 text-violet-700" />
 								{/if}
 							</button>
+							<!-- 2️⃣ answer (full-width on mobile, col-2 on ≥sm) -->
+							<p
+								class="answer col-span-full mt-2 max-h-16
+                   overflow-y-auto pr-1
+                   text-sm break-words text-gray-700
+                   sm:col-span-1 sm:col-start-2 sm:mt-0"
+							>
+								{player.Answers[prompts.length - 1].Answer}
+							</p>
 						{/if}
 					</li>
 				{/each}
@@ -201,7 +220,7 @@
 	{#if showNextPromptButton}
 		<div class="mt-6 text-center">
 			<button
-				class="rounded-lg bg-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700"
+				class="rounded-lg bg-violet-700 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700"
 				onclick={nextPrompt}
 			>
 				Next prompt
