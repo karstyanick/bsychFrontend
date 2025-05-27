@@ -188,7 +188,7 @@
 
 						{#if showCurrentRowAnswers}
 							<!-- 3️⃣ score -->
-							<span class="text-right text-sm font-semibold text-violet-700 sm:text-left">
+							<span class="text-left text-right text-sm font-semibold text-violet-700">
 								{player.Answers[prompts.length - 1].Score}
 							</span>
 							<!-- 4️⃣ vote button -->
@@ -211,7 +211,7 @@
 								class="answer col-span-full mt-2 max-h-16
                    overflow-y-auto pr-1
                    text-sm break-words text-gray-700
-                   sm:col-span-1 sm:col-start-2 sm:mt-0"
+                   sm:col-span-1 sm:col-start-1 sm:mt-0"
 							>
 								{player.Answers[prompts.length - 1].Answer}
 							</p>
