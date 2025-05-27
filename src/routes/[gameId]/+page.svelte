@@ -28,15 +28,18 @@
 	let showEndScreen = $state(false);
 
 	async function voteAnswer(playerId: string) {
-		await fetch(`http://localhost:8080/game/${data.gameId}/player/${data.playerId}/vote`, {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json'
-			},
-			body: JSON.stringify({
-				PlayerId: playerId
-			})
-		});
+		await fetch(
+			`https://bsych.reallyfluffy.dev/goapi/game/${data.gameId}/player/${data.playerId}/vote`,
+			{
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					PlayerId: playerId
+				})
+			}
+		);
 
 		answerInput = '';
 	}
@@ -45,27 +48,30 @@
 	async function submitAnswer() {
 		if (!answerInput || prompts.length === 0) return;
 
-		await fetch(`http://localhost:8080/game/${data.gameId}/player/${data.playerId}`, {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json'
-			},
-			body: JSON.stringify({
-				answer: answerInput
-			})
-		});
+		await fetch(
+			`https://bsych.reallyfluffy.dev/goapi/game/${data.gameId}/player/${data.playerId}`,
+			{
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					answer: answerInput
+				})
+			}
+		);
 
 		answerInput = '';
 	}
 
 	async function nextPrompt() {
-		await fetch(`http://localhost:8080/game/${data.gameId}`);
+		await fetch(`https://bsych.reallyfluffy.dev/goapi/game/${data.gameId}`);
 		showCurrentRowAnswers = false;
 		showNextPromptButton = false;
 	}
 
 	onMount(() => {
-		ws = new WebSocket('ws://localhost:8080/ws');
+		ws = new WebSocket('wss://bsych.reallyfluffy.dev/goapi/ws');
 
 		ws.onopen = () => {
 			ws.send(
@@ -171,11 +177,11 @@
 						{#if !showCurrentRowAnswers}
 							<!-- waiting / answered icon (put in the 4th column) -->
 							{#if player.Answers.length > prompts.length - 1}
-								<Fa icon={faCheck} class="col-start-4 h-5 w-5 justify-self-end text-emerald-500" />
+								<Fa icon={faCheck} class="col-start-4 w-5 justify-self-end text-emerald-500" />
 							{:else}
 								<Fa
 									icon={faHourglassHalf}
-									class="col-start-4 h-5 w-5 justify-self-end text-amber-500"
+									class="col-start-4 w-5 justify-self-end text-amber-500"
 								/>
 							{/if}
 						{/if}

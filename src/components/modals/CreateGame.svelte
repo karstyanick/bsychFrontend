@@ -15,7 +15,7 @@
 	let nickNameInput = $state('');
 
 	const createRoom = async () => {
-		ws = new WebSocket('ws://localhost:8080/ws');
+		ws = new WebSocket('wss://bsych.reallyfluffy.dev/goapi/ws');
 
 		ws.onopen = () => {
 			const createGameMessage: OutgoingMessage<CreateGameData> = {

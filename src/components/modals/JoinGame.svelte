@@ -15,7 +15,7 @@
 		if (!roomCodeInput.trim()) return;
 		if (players.find((player) => player.NickName == nickNameInput)) return;
 
-		ws = new WebSocket('ws://localhost:8080/ws');
+		ws = new WebSocket('wss://bsych.reallyfluffy.dev/goapi/ws');
 
 		ws.onopen = () => {
 			console.log('✅ Connected to server');
