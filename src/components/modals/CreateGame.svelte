@@ -13,9 +13,11 @@
 	let ws: WebSocket;
 	let created = $state(false);
 	let nickNameInput = $state('');
+	const backendHost = 'wss://bsych.reallyfluffy.dev/goapi';
+	// const backendHost = 'ws://localhost:8081';
 
 	const createRoom = async () => {
-		ws = new WebSocket('wss://bsych.reallyfluffy.dev/goapi/ws');
+		ws = new WebSocket(`${backendHost}/ws`);
 
 		ws.onopen = () => {
 			const createGameMessage: OutgoingMessage<CreateGameData> = {
@@ -80,39 +82,30 @@
 		{#if !created}
 			<!-- modal -->
 			<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-			<div
-				class="w-full max-w-md rounded-xl bg-white p-6 shadow-xl"
-				role="form"
-				onclick={(event) => event.stopPropagation()}
-			>
-				<div class="mb-6">
-					<label for="roomCode" class="mb-2 block text-sm font-medium text-gray-700">
-						Enter Nickname
-					</label>
-					<input
-						id="nickname"
-						bind:value={nickNameInput}
-						type="text"
-						placeholder="Player 123"
-						class="w-full rounded border border-gray-300 px-3 py-2 text-sm tracking-wider focus:border-blue-500 focus:outline-none"
-					/>
-				</div>
-				<!-- buttons -->
-				<div class="flex justify-end space-x-3">
-					<button
-						class="rounded px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
-						onclick={onClose}
-					>
-						Cancel
-					</button>
-					<button
-						class="rounded bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
-						onclick={createRoom}
-						disabled={nickNameInput.trim().length === 0}
-					>
-						Create
-					</button>
-				</div>
+			<div class="mb-6">
+				<label for="roomCode" class="mb-2 block text-sm font-medium text-gray-700">
+					Enter Nickname
+				</label>
+				<input
+					id="nickname"
+					bind:value={nickNameInput}
+					type="text"
+					placeholder="Player 123"
+					class="w-full rounded border border-gray-300 px-3 py-2 text-sm tracking-wider focus:border-blue-500 focus:outline-none"
+				/>
+			</div>
+			<!-- buttons -->
+			<div class="flex justify-end space-x-3">
+				<button class="rounded px-4 py-2 text-sm text-gray-600 hover:bg-gray-100" onclick={onClose}>
+					Cancel
+				</button>
+				<button
+					class="rounded bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-50"
+					onclick={createRoom}
+					disabled={nickNameInput.trim().length === 0}
+				>
+					Create
+				</button>
 			</div>
 		{/if}
 		{#if created}
@@ -151,12 +144,12 @@
 				<select
 					id="rounds"
 					bind:value={rounds}
-					class="rounded border border-gray-300 px-3 py-1 text-sm focus:border-blue-500 focus:outline-none"
+					class="rounded border border-gray-300 py-1 pl-2 text-sm focus:border-blue-500 focus:outline-none"
 				>
-					<option value="5">5</option>
-					<option value="10">10</option>
-					<option value="15">15</option>
-					<option value="20">20</option>
+					<option value={5}>5</option>
+					<option value={10}>10</option>
+					<option value={15}>15</option>
+					<option value={20}>20</option>
 				</select>
 			</div>
 
@@ -166,8 +159,8 @@
 					Cancel
 				</button>
 				<button
-					class="rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white
-                 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+					class="rounded bg-violet-600 px-4 py-2 text-sm font-semibold text-white
+                 hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-50"
 					onclick={onStart}
 					disabled={players.length === 0}
 				>

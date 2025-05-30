@@ -10,12 +10,14 @@
 	let ws: WebSocket | null = null;
 
 	let connected = $state(false);
+	const backendHost = 'wss://bsych.reallyfluffy.dev/goapi';
+	// const backendHost = 'ws://localhost:8081';
 
 	const connectToRoom = () => {
 		if (!roomCodeInput.trim()) return;
 		if (players.find((player) => player.NickName == nickNameInput)) return;
 
-		ws = new WebSocket('wss://bsych.reallyfluffy.dev/goapi/ws');
+		ws = new WebSocket(`${backendHost}/ws`);
 
 		ws.onopen = () => {
 			console.log('✅ Connected to server');
@@ -130,7 +132,7 @@
 					Cancel
 				</button>
 				<button
-					class="rounded bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+					class="rounded bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-50"
 					onclick={connectToRoom}
 					disabled={roomCodeInput.trim().length === 0}
 				>

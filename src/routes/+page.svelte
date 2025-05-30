@@ -8,13 +8,13 @@
 
 <div class="flex h-screen flex-col items-center justify-center gap-5">
 	<button
-		class="rounded bg-green-600 px-4 py-2 font-medium text-white hover:bg-green-700"
+		class="rounded bg-violet-600 px-4 py-2 font-medium text-white hover:bg-violet-700"
 		onclick={() => (visibleCreateModal = true)}
 	>
 		Create game
 	</button>
 	<button
-		class="rounded bg-green-600 px-4 py-2 font-medium text-white hover:bg-green-700"
+		class="rounded bg-violet-600 px-4 py-2 font-medium text-white hover:bg-violet-700"
 		onclick={() => (visibleJoinModal = true)}
 	>
 		Join game

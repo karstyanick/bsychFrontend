@@ -2,8 +2,9 @@
 	import { onMount } from 'svelte';
 	import type { Game, Player } from '../../types/game';
 
+	import { fade } from 'svelte/transition';
 	import Fa from 'svelte-fa';
-	import { faCheck } from '@fortawesome/free-solid-svg-icons';
+	import { faCheck, faCrown } from '@fortawesome/free-solid-svg-icons';
 	import { faHourglassHalf } from '@fortawesome/free-solid-svg-icons';
 	import { faThumbsUp as faThumbsUpSolid } from '@fortawesome/free-solid-svg-icons';
 	import { faThumbsUp } from '@fortawesome/free-regular-svg-icons';
@@ -15,9 +16,26 @@
 		};
 	}>();
 
+	function shuffle(array: any[]) {
+		let copy = [...array];
+		let currentIndex = copy.length;
+
+		// While there remain elements to shuffle...
+		while (currentIndex != 0) {
+			// Pick a remaining element...
+			let randomIndex = Math.floor(Math.random() * currentIndex);
+			currentIndex--;
+
+			// And swap it with the current element.
+			[copy[currentIndex], copy[randomIndex]] = [copy[randomIndex], copy[currentIndex]];
+		}
+		return copy;
+	}
+
 	let ws: WebSocket;
 	let roomCode = $state('');
 	let players = $state<Player[]>([]);
+	let shuffledPlayers = $state<Player[]>([]);
 	let me = $state<Player>();
 	let prompts = $state<string[]>([]);
 	let answers = $state<{ Answer: string; Score: number }[]>([]);
@@ -26,52 +44,49 @@
 	let showCurrentRowAnswers = $state(false);
 	let showNextPromptButton = $state(false);
 	let showEndScreen = $state(false);
+	const backendHost = 'https://bsych.reallyfluffy.dev/goapi';
+	const wsBackendHost = 'wss://bsych.reallyfluffy.dev/goapi';
+	// const wsBackendHost = 'ws://localhost:8081';
+	// const backendHost = 'http://localhost:8081';
+	let sortedPlayers: Player[] = $state([]);
 
 	async function voteAnswer(playerId: string) {
-		await fetch(
-			`https://bsych.reallyfluffy.dev/goapi/game/${data.gameId}/player/${data.playerId}/vote`,
-			{
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					PlayerId: playerId
-				})
-			}
-		);
-
-		answerInput = '';
+		await fetch(`${backendHost}/game/${data.gameId}/player/${data.playerId}/vote`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				PlayerId: playerId
+			})
+		});
 	}
 
 	// Submit answer to the backend
 	async function submitAnswer() {
 		if (!answerInput || prompts.length === 0) return;
 
-		await fetch(
-			`https://bsych.reallyfluffy.dev/goapi/game/${data.gameId}/player/${data.playerId}`,
-			{
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					answer: answerInput
-				})
-			}
-		);
+		await fetch(`${backendHost}/game/${data.gameId}/player/${data.playerId}`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				answer: answerInput
+			})
+		});
 
 		answerInput = '';
 	}
 
 	async function nextPrompt() {
-		await fetch(`https://bsych.reallyfluffy.dev/goapi/game/${data.gameId}`);
+		await fetch(`${backendHost}/game/${data.gameId}`);
 		showCurrentRowAnswers = false;
 		showNextPromptButton = false;
 	}
 
 	onMount(() => {
-		ws = new WebSocket('wss://bsych.reallyfluffy.dev/goapi/ws');
+		ws = new WebSocket(`${wsBackendHost}/ws`);
 
 		ws.onopen = () => {
 			ws.send(
@@ -98,12 +113,32 @@
 			answers = me?.Answers || [];
 			votes = me?.Votes || [];
 
-			if (players.every((p) => p.Answers.length == prompts.length)) {
-				showCurrentRowAnswers = true;
+			if (players.every((p) => p.Answers.length === prompts.length)) {
+				if (!showCurrentRowAnswers) {
+					showCurrentRowAnswers = true;
+					shuffledPlayers = shuffle(players);
+				} else {
+					shuffledPlayers = shuffledPlayers.map(
+						(player) => players.find((it) => it.NickName === player.NickName) as Player
+					);
+				}
 
-				if (players.every((p) => p.Votes.length == prompts.length)) {
-					if (game.NumberOfRounds == prompts.length) {
+				if (players.every((p) => p.Votes.length === prompts.length)) {
+					if (game.NumberOfRounds === prompts.length) {
 						showEndScreen = true;
+
+						sortedPlayers = [...players].sort(
+							(prev, curr) =>
+								curr.Answers.reduce((s, a) => s + a.Score, 0) -
+								prev.Answers.reduce((s, a) => s + a.Score, 0)
+						);
+
+						await fetch(`${backendHost}/game/${data.gameId}`, {
+							method: 'DELETE',
+							headers: {
+								'Content-Type': 'application/json'
+							}
+						});
 					} else {
 						showNextPromptButton = true;
 					}
@@ -124,7 +159,7 @@
 	});
 </script>
 
-<div class="px-4 sm:px-6">
+<div class="px-4 py-4 sm:px-6">
 	<h1 class="mb-3 text-center text-2xl font-extrabold tracking-wide text-violet-700">
 		Room {roomCode}
 	</h1>
@@ -160,33 +195,55 @@
 			<h2 class="text-lg font-semibold text-violet-700">Players</h2>
 
 			<ul class="space-y-2">
-				{#each players as player (player.NickName)}
-					<!-- one card per player -->
-					<li
-						class="grid grid-cols-[auto_1fr_auto_auto] items-start
+				{#if !showCurrentRowAnswers}
+					{#each players as player (player.NickName)}
+						<!-- one card per player -->
+						<li
+							class="grid grid-cols-[auto_1fr_auto_auto] items-start
                gap-x-2
                rounded-xl bg-white/80 px-4 py-3 shadow
                transition duration-300
                {showCurrentRowAnswers ? 'animate-fade-in' : ''}"
-					>
-						<!-- 1️⃣ name -->
-						<span class="max-w-[6rem] truncate font-medium sm:max-w-none">
-							{player.NickName}
-						</span>
+						>
+							<span
+								in:fade={{ duration: 500 }}
+								class="max-w-[6rem] truncate font-medium sm:max-w-none"
+							>
+								{player.NickName}
+							</span>
 
-						{#if !showCurrentRowAnswers}
-							<!-- waiting / answered icon (put in the 4th column) -->
 							{#if player.Answers.length > prompts.length - 1}
-								<Fa icon={faCheck} class="col-start-4 w-5 justify-self-end text-emerald-500" />
+								<Fa icon={faCheck} class="col-start-4 w-5 justify-self-end text-violet-700" />
 							{:else}
 								<Fa
 									icon={faHourglassHalf}
-									class="col-start-4 w-5 justify-self-end text-amber-500"
+									class="col-start-4 w-5 justify-self-end text-violet-700"
 								/>
 							{/if}
-						{/if}
+						</li>
+					{/each}
+				{/if}
+				{#if showCurrentRowAnswers}
+					{#each shuffledPlayers as player (player.NickName)}
+						<!-- one card per player -->
+						<li
+							class="grid grid-cols-[auto_1fr_auto_auto] items-start
+               gap-x-2
+               rounded-xl bg-white/80 px-4 py-3 shadow
+               transition duration-300
+               {showCurrentRowAnswers ? 'animate-fade-in' : ''}"
+						>
+							{#if showNextPromptButton}
+								<span
+									in:fade={{ duration: 500 }}
+									class="max-w-[6rem] truncate font-medium sm:max-w-none"
+								>
+									{player.NickName}
+								</span>
+							{:else}
+								<span class="max-w-[6rem] truncate font-medium sm:max-w-none"> •••••••• </span>
+							{/if}
 
-						{#if showCurrentRowAnswers}
 							<!-- 3️⃣ score -->
 							<span class="text-left text-right text-sm font-semibold text-violet-700">
 								{player.Answers[prompts.length - 1].Score}
@@ -215,18 +272,18 @@
 							>
 								{player.Answers[prompts.length - 1].Answer}
 							</p>
-						{/if}
-					</li>
-				{/each}
+						</li>
+					{/each}
+				{/if}
 			</ul>
 		</div>
 	{/if}
 
 	<!-- Next-prompt button -->
-	{#if showNextPromptButton}
+	{#if showNextPromptButton && players.find((player) => player.Leader)?.NickName === data.playerId}
 		<div class="mt-6 text-center">
 			<button
-				class="rounded-lg bg-violet-700 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700"
+				class="rounded-lg bg-violet-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700"
 				onclick={nextPrompt}
 			>
 				Next prompt
@@ -241,8 +298,20 @@
 			<div class="rounded-xl bg-white/90 p-6 shadow-lg">
 				<h3 class="mb-3 text-xl font-bold text-violet-700">Total Scores</h3>
 				<ul class="space-y-2">
-					{#each players as player}
-						<li class="flex justify-between text-sm font-medium">
+					{#each sortedPlayers as player, i}
+						<li
+							class="grid grid-cols-[1.25rem_1fr_auto_auto] items-start gap-x-2 text-sm font-medium"
+						>
+							<!-- Crown or empty space -->
+							<div class="h-4 w-4">
+								{#if i === 0}
+									<Fa icon={faCrown} class="h-4 w-4 text-violet-700" />
+								{:else}
+									<!-- Keeps spacing consistent -->
+									<span class="inline-block h-4 w-4"></span>
+								{/if}
+							</div>
+
 							<span>{player.NickName}</span>
 							<span class="text-violet-700">
 								{player.Answers.reduce((s, a) => s + a.Score, 0)} pts
