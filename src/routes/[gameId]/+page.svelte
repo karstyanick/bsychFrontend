@@ -8,6 +8,7 @@
 	import { faHourglassHalf } from '@fortawesome/free-solid-svg-icons';
 	import { faThumbsUp as faThumbsUpSolid } from '@fortawesome/free-solid-svg-icons';
 	import { faThumbsUp } from '@fortawesome/free-regular-svg-icons';
+	import { goto } from '$app/navigation';
 
 	const { data } = $props<{
 		data: {
@@ -83,6 +84,10 @@
 		await fetch(`${backendHost}/game/${data.gameId}`);
 		showCurrentRowAnswers = false;
 		showNextPromptButton = false;
+	}
+
+	async function newGame() {
+		goto(`/`);
 	}
 
 	onMount(() => {
@@ -350,6 +355,14 @@
 						</ul>
 					</div>
 				{/each}
+				<div class="mt-6 text-center">
+					<button
+						class="rounded-lg bg-violet-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700"
+						onclick={newGame}
+					>
+						New Game
+					</button>
+				</div>
 			</div>
 		</div>
 	{/if}
