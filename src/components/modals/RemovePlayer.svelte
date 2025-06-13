@@ -9,9 +9,8 @@
 		onClose: () => void;
 	}>();
 
-	// const backendHost = 'https://bsych.reallyfluffy.dev/goapi';
-	// const wsBackendHost = 'wss://bsych.reallyfluffy.dev/goapi';
-	const backendHost = 'http://localhost:8081';
+	const backendHost = 'https://bsych.reallyfluffy.dev/goapi';
+	// const backendHost = 'http://localhost:8081';
 
 	async function removePlayer(playerId: string) {
 		fetch(`${backendHost}/game/${gameId}/player/${playerId}`, {
