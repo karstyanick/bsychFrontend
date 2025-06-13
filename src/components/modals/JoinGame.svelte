@@ -56,17 +56,21 @@
 			console.log('🔌 WebSocket connection closed');
 		};
 	};
+
+	const handleClose = () => {
+		if (confirm('Are you sure you want to close this dialog? Any progress will be lost.')) {
+			onClose();
+		}
+	};
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <div
 	class="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4"
-	role="button"
-	tabindex="0"
 	aria-label="Close join modal"
-	onclick={onClose}
 >
 	{#if connected}
+		<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 		<div
 			class="w-full max-w-md rounded-xl bg-white p-6 shadow-xl"
 			role="form"
@@ -128,7 +132,10 @@
 			</div>
 			<!-- buttons -->
 			<div class="flex justify-end space-x-3">
-				<button class="rounded px-4 py-2 text-sm text-gray-600 hover:bg-gray-100" onclick={onClose}>
+				<button
+					class="rounded px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
+					onclick={handleClose}
+				>
 					Cancel
 				</button>
 				<button

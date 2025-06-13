@@ -2,22 +2,27 @@
 	import type { Game, Player } from '../../types/game';
 	import type { CreateGameData, OutgoingMessage, StartGameData } from '../../types/ws';
 	import { goto } from '$app/navigation';
+	import { stopPropagation } from 'svelte/legacy';
+	import { faRemove } from '@fortawesome/free-solid-svg-icons';
+	import Fa from 'svelte-fa';
 
 	const { onClose } = $props<{
 		onClose: () => void;
 	}>();
 
-	let roomCode = $state('');
+	let gameId = $state('');
 	let rounds = $state(5);
 	let players = $state<Player[]>([]);
 	let ws: WebSocket;
 	let created = $state(false);
 	let nickNameInput = $state('');
-	const backendHost = 'wss://bsych.reallyfluffy.dev/goapi';
-	// const backendHost = 'ws://localhost:8081';
+	const wsBackendHost = 'wss://bsych.reallyfluffy.dev/goapi';
+	const backendHost = 'https://bsych.reallyfluffy.dev/goapi';
+	// const wsBackendHost = 'ws://localhost:8081';
+	// const backendHost = 'http://localhost:8081';
 
 	const createRoom = async () => {
-		ws = new WebSocket(`${backendHost}/ws`);
+		ws = new WebSocket(`${wsBackendHost}/ws`);
 
 		ws.onopen = () => {
 			const createGameMessage: OutgoingMessage<CreateGameData> = {
@@ -32,13 +37,13 @@
 
 		ws.onmessage = (event) => {
 			if (event.data === 'StartGame') {
-				goto(`/${roomCode}?playerId=${nickNameInput}`);
+				goto(`/${gameId}?playerId=${nickNameInput}`);
 				return;
 			}
 
 			const game: Game = JSON.parse(event.data);
 
-			roomCode = game.Id;
+			gameId = game.Id;
 			created = true;
 			players = game.Players ? game.Players : players;
 		};
@@ -57,22 +62,28 @@
 		const startGameMessage: OutgoingMessage<StartGameData> = {
 			Type: 'StartGame',
 			Data: {
-				GameId: roomCode,
+				GameId: gameId,
 				NumberOfRounds: parseInt(rounds as any)
 			}
 		};
 		ws.send(JSON.stringify(startGameMessage));
 	};
+
+	const removePlayer = (playerId: string) => {
+		fetch(`${backendHost}/game/${gameId}/player/${playerId}`, {
+			method: 'DELETE'
+		});
+	};
+
+	const handleClose = () => {
+		if (confirm('Are you sure you want to close this dialog? Any progress will be lost.')) {
+			onClose();
+		}
+	};
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
-<div
-	class="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4"
-	onclick={onClose}
-	tabindex="0"
-	role="button"
->
-	<!-- modal -->
+<div class="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4">
 	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 	<div
 		class="w-full max-w-md rounded-xl bg-white p-6 shadow-xl"
@@ -80,8 +91,7 @@
 		onclick={(event) => event.stopPropagation()}
 	>
 		{#if !created}
-			<!-- modal -->
-			<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+			<!-- nickname input -->
 			<div class="mb-6">
 				<label for="roomCode" class="mb-2 block text-sm font-medium text-gray-700">
 					Enter Nickname
@@ -96,7 +106,10 @@
 			</div>
 			<!-- buttons -->
 			<div class="flex justify-end space-x-3">
-				<button class="rounded px-4 py-2 text-sm text-gray-600 hover:bg-gray-100" onclick={onClose}>
+				<button
+					class="rounded px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
+					onclick={handleClose}
+				>
 					Cancel
 				</button>
 				<button
@@ -113,10 +126,10 @@
 
 			<!-- room code -->
 			<div class="mb-6 flex items-center justify-between rounded-lg bg-gray-100 px-4 py-3">
-				<span class="font-mono text-lg tracking-widest">{roomCode}</span>
+				<span class="font-mono text-lg tracking-widest">{gameId}</span>
 				<button
-					class="text-sm text-blue-600 hover:underline"
-					onclick={() => navigator.clipboard.writeText(roomCode)}
+					class="text-sm text-violet-700 hover:underline"
+					onclick={() => navigator.clipboard.writeText(gameId)}
 				>
 					copy
 				</button>
@@ -132,6 +145,11 @@
 						{#each players as p}
 							<li class="flex items-center justify-between rounded bg-gray-50 px-3 py-2">
 								<span class="truncate">{p.NickName}</span>
+								{#if !p.Leader}
+									<button class="" onclick={() => removePlayer(p.NickName)}>
+										<Fa icon={faRemove} class="h-4 w-4 text-violet-700" />
+									</button>
+								{/if}
 							</li>
 						{/each}
 					</ul>
@@ -155,7 +173,10 @@
 
 			<!-- actions -->
 			<div class="flex justify-end space-x-3">
-				<button class="rounded px-4 py-2 text-sm text-gray-600 hover:bg-gray-100" onclick={onClose}>
+				<button
+					class="rounded px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
+					onclick={handleClose}
+				>
 					Cancel
 				</button>
 				<button

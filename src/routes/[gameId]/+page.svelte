@@ -4,11 +4,12 @@
 
 	import { fade } from 'svelte/transition';
 	import Fa from 'svelte-fa';
-	import { faCheck, faCrown } from '@fortawesome/free-solid-svg-icons';
+	import { faCheck, faCrown, faUserXmark } from '@fortawesome/free-solid-svg-icons';
 	import { faHourglassHalf } from '@fortawesome/free-solid-svg-icons';
-	import { faThumbsUp as faThumbsUpSolid } from '@fortawesome/free-solid-svg-icons';
+	import { faThumbsUp as faThumbsUpSolid, faRemove } from '@fortawesome/free-solid-svg-icons';
 	import { faThumbsUp } from '@fortawesome/free-regular-svg-icons';
 	import { goto } from '$app/navigation';
+	import RemovePlayer from '../../components/modals/RemovePlayer.svelte';
 
 	const { data } = $props<{
 		data: {
@@ -34,7 +35,7 @@
 	}
 
 	let ws: WebSocket;
-	let roomCode = $state('');
+	let gameId = $state('');
 	let players = $state<Player[]>([]);
 	let shuffledPlayers = $state<Player[]>([]);
 	let me = $state<Player>();
@@ -45,6 +46,7 @@
 	let showCurrentRowAnswers = $state(false);
 	let showNextPromptButton = $state(false);
 	let showEndScreen = $state(false);
+	let showRemovePlayersModal = $state(false);
 	const backendHost = 'https://bsych.reallyfluffy.dev/goapi';
 	const wsBackendHost = 'wss://bsych.reallyfluffy.dev/goapi';
 	// const wsBackendHost = 'ws://localhost:8081';
@@ -108,7 +110,7 @@
 		ws.onmessage = async (event) => {
 			const game: Game = JSON.parse(event.data);
 
-			roomCode = game.Id;
+			gameId = game.Id;
 			players = game.Players ?? players;
 			if (game.Prompts?.length > 0) {
 				prompts = game.Prompts;
@@ -166,7 +168,7 @@
 
 <div class="px-4 py-4 sm:px-6">
 	<h1 class="mb-3 text-center text-2xl font-extrabold tracking-wide text-violet-700">
-		Room {roomCode}
+		Room {gameId}
 	</h1>
 
 	{#if !showEndScreen}
@@ -197,14 +199,23 @@
 		{/if}
 		<!-- Player list -->
 		<div class="space-y-3">
-			<h2 class="text-lg font-semibold text-violet-700">Players</h2>
-
+			<div class="flex flex-row items-center justify-between gap-10">
+				<h2 class="text-lg font-semibold text-violet-700">Players</h2>
+				{#if me?.Leader}
+					<button
+						class="cursor-pointer rounded-lg border border-solid border-red-600 px-2 py-2 shadow-sm transition hover:bg-red-200"
+						onclick={() => (showRemovePlayersModal = true)}
+					>
+						<Fa icon={faUserXmark} class="col-start-4 w-5 justify-self-end text-red-500" />
+					</button>
+				{/if}
+			</div>
 			<ul class="space-y-2">
 				{#if !showCurrentRowAnswers}
 					{#each players as player (player.NickName)}
 						<!-- one card per player -->
 						<li
-							class="grid grid-cols-[auto_1fr_auto_auto] items-start
+							class="grid grid-cols-[auto_1fr_auto_auto] items-center
                gap-x-2
                rounded-xl bg-white/80 px-4 py-3 shadow
                transition duration-300
@@ -232,7 +243,7 @@
 					{#each shuffledPlayers as player (player.NickName)}
 						<!-- one card per player -->
 						<li
-							class="grid grid-cols-[auto_1fr_auto_auto] items-start
+							class="grid grid-cols-[auto_1fr_auto_auto] items-center
                gap-x-2
                rounded-xl bg-white/80 px-4 py-3 shadow
                transition duration-300
@@ -365,6 +376,9 @@
 				</div>
 			</div>
 		</div>
+	{/if}
+	{#if showRemovePlayersModal}
+		<RemovePlayer {players} {gameId} onClose={() => (showRemovePlayersModal = false)} />
 	{/if}
 </div>
 
