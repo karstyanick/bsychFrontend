@@ -9,7 +9,6 @@
 	import { faThumbsUp as faThumbsUpSolid, faRemove } from '@fortawesome/free-solid-svg-icons';
 	import { faThumbsUp } from '@fortawesome/free-regular-svg-icons';
 	import { goto } from '$app/navigation';
-	import RemovePlayer from '../../components/modals/RemovePlayer.svelte';
 
 	const { data } = $props<{
 		data: {
@@ -90,6 +89,12 @@
 
 	async function newGame() {
 		goto(`/`);
+	}
+
+	async function removePlayer(playerId: string) {
+		fetch(`${backendHost}/game/${gameId}/player/${playerId}`, {
+			method: 'DELETE'
+		});
 	}
 
 	onMount(() => {
@@ -377,8 +382,36 @@
 			</div>
 		</div>
 	{/if}
+
 	{#if showRemovePlayersModal}
-		<RemovePlayer {players} {gameId} onClose={() => (showRemovePlayersModal = false)} />
+		<div
+			onclick={() => (showRemovePlayersModal = false)}
+			class="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4"
+		>
+			<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+			<div
+				class="w-full max-w-md rounded-xl bg-white p-6 shadow-xl"
+				role="form"
+				onclick={(event) => event.stopPropagation()}
+			>
+				<h2 class="mb-4 text-center text-2xl font-bold text-gray-800">Remove players</h2>
+				<!-- players -->
+				<div class="mb-6">
+					<ul class="space-y-1">
+						{#each players as p}
+							<li class="flex items-center justify-between rounded bg-gray-50 px-3 py-2">
+								<span class="truncate">{p.NickName}</span>
+								{#if !p.Leader}
+									<button class="" onclick={() => removePlayer(p.NickName)}>
+										<Fa icon={faRemove} class="h-4 w-4 text-violet-700" />
+									</button>
+								{/if}
+							</li>
+						{/each}
+					</ul>
+				</div>
+			</div>
+		</div>
 	{/if}
 </div>
 
