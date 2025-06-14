@@ -26,6 +26,26 @@ export default defineConfig({
 					type: 'image/png'
 				}
 			]
+		},
+		/* --- Assets that should be copied verbatim into /build --- */
+		includeAssets: ['favicon.ico', 'robots.txt'],
+		workbox: {
+			// 1️⃣  Activate the new SW immediately after install
+			skipWaiting: true,
+			clientsClaim: true,
+
+			// 2️⃣  Drop old precache entries that aren’t in the new build
+			cleanupOutdatedCaches: true,
+
+			// 3️⃣  Never treat real asset requests as navigations
+			//     (prevents HTML being cached under JS chunk URLs)
+			navigateFallback: '/index.html',
+			navigateFallbackDenylist: [
+				/^\/_app\//,            // SvelteKit chunks & assets
+				/^\/assets\//,          // any custom static dir you may add
+				/\/favicon\.ico$/,
+				/\/robots\.txt$/
+			]
 		}
 	})
 	],
